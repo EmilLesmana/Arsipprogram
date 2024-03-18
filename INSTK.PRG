@@ -1,0 +1,470 @@
+*******************************************
+* Compile    : /m/n/a/z/v/w/b             *
+* Name       : In.prg                     *
+* For Input Pemasukan Barang              *
+*******************************************
+
+memvar getlist
+#include "ee.intan"
+Field Kodbrg,Kodpmsk,Nama,Alamat,Nobpb,PMS,Tglin,MUKA,TUNAI,;
+      DP,TGLHT,STATUS,Qtt,HARGA,TOTALHT,Jmlht
+Static _u
+Static n:=1
+Static apict:={'@!','@!','@e 9,999','@e 99,999,999','@e 999,999,999,999'}
+Static dDate
+Static cFaktur
+Static cBukti
+Static ckodPMSK
+Static aTmp
+Static ob
+Static nElemen
+Static c
+Static x
+Static nBrs
+Static nCol
+Static Pilih
+Static cHelp
+Static nArray
+
+Function InStk()
+geser(1)
+dbcloseall()
+buka1()
+While .T.
+   aTmp:={}
+   _mHeader()
+   Editheader()
+   IF cFaktur=space(8)
+      exit
+   ENDIF
+
+   If cBukti==space(8)
+      exit
+   ENDIF
+   cBrowse()
+   If Pilih==1
+      Proses2()
+   else
+      Proses1()
+   Endif
+   CLOSE SEM
+   ERASE SEM.DBF
+Enddo
+dbCLOSEALL()
+Erase sem.dbf
+RETURN nil
+
+Static Function cBrowse()
+nElemen:=1
+// Trio Block Tbrowse
+Setcolor('gr+/b,w/r')
+OB:=TBROWSENEW(7,2,16,70)
+OB:GOTOPBLOCK:={||NELEMEN:=1}
+OB:GOBOTTOMBLOCK:={||NELEMEN:=LEN(aTmp)}
+OB:skipblock:={|N|SKIPARRAY(LEN(aTmp),@NELEMEN,n)}
+Ob:Colorspec:='gr+/b,n/g,n/r'
+
+// Add to Objeck Colom
+c:=TBCOLUMNNEW(' Kode Brg ',{||aTmp[nelemen,1]})
+c:Colorblock:={||If(aTmp[nElemen,6]=='F',{3,2},{1,2})}
+OB:ADDCOLUMN(c)
+c:=TBCOLUMNNEW(' Nama Barang ',{||aTmp[NELEMEN,2]})
+c:Colorblock:={||If(aTmp[nElemen,6]=='F',{3,2},{1,2})}
+OB:ADDCOLUMN(c)
+c:=TBCOLUMNNEW(' Jumlah ',{||tran(aTmp[NELEMEN,3],'@e 9,999')})
+c:Colorblock:={||If(aTmp[nElemen,6]=='F',{3,2},{1,2})}
+OB:ADDCOLUMN(c)
+c:=TBCOLUMNNEW(' Ambil ',{||tran(aTmp[NELEMEN,4],'@e 9,999,999')})
+c:Colorblock:={||If(aTmp[nElemen,6]=='F',{3,2},{1,2})}
+OB:ADDCOLUMN(c)
+c:=TBCOLUMNNEW(' Sisa ',{||tran(aTmp[NELEMEN,5],'@e 9,999')})
+c:Colorblock:={||If(aTmp[nElemen,6]=='F',{3,2},{1,2})}
+OB:ADDCOLUMN(c)
+
+SEPARATED OB WITH BSINGLE
+Return nil
+
+Static Function Proses1()
+Local mJud,mTpl
+WHILE .T.
+   WHILE !OB:STABILIZE()
+   END
+   nBrs:=ROW() ; nCol:=COL()
+   if ob:hitbottom
+      berita(15,39,' Akhir Data .............  ','gr+/bg')
+   elseif ob:hittop
+      berita(15,39,' Awal Data ........  ','n/g')
+   endif
+   Showind(ob,len(aTmp),nElemen,17,71)
+   setcolor('R/bg')
+   X:=EVAL({||Putar(1,23,'   Pemasukan Barang   ','w/r')})
+   Setpos(nBrs,nCol)
+
+   IF X==13
+      if ob:colpos==2 .or. ob:colpos==3
+         ob:right()
+         Loop
+      endif
+
+      if ob:colpos==5
+         ob:panhome()
+         Loop
+      endif
+      cTmpData:=aTmp[nelemen,ob:colpos]
+      @row(),col() get aTmp[nelemen,ob:colpos] pict apict[ob:colpos]
+      read
+      SELE Sem
+      if ob:colpos==1
+         IF aTmp[nElemen,1]=space(10)
+            SAVE SCREEN
+            mJud:={'KodBrg','Nama Barang'}
+            mTpl:={'KODBRG','stk->Nama'}
+            sBox(9,1,21,60,'R/Bg,W/R')
+            dBedit(10,2,20,59,MTPL,'','',MJUD)
+            RESTORE SCREEN
+            aTmp[nElemen,1]:=sem->KODBRG
+         ENDIF
+         IF !fFound(12,39,aTmp[nElemen,1],'gr+/br')
+            aTmp[nElemen,1]:=space(10)
+            LOOP
+         ENDIF
+         aTmp[nElemen,2]:=stk->Nama
+         aTmp[nElemen,3]:=sem->sisa
+      Endif
+
+
+      If ob:Colpos=4
+         IF aTmp[nELemen,3]-aTmp[nElemen,4]<0
+            aTmp[nElemen,4]:=cTmpData
+            Berita(15,39,' Sisa barang Tidak mencukupi ... ','br/n')
+            loop
+         Endif
+         aTmp[nElemen,5]:=aTmp[nElemen,3]-aTmp[nElemen,4]
+      Endif
+      ob:right()
+      ob:refreshall()
+   endif
+
+   if x==43
+      ob:gobottom()
+      ob:panhome()
+      while !ob:stabilize() ; end
+      if aTmp[nelemen,ob:colpos]==space(10)
+         berita(row()+1,39,' Penambahan, Tidak Bisa dilakukan ','gr/n')
+         LOOP
+      endif
+      aAdd(aTmp,{space(10),space(20),0,0,0,'T'})
+      ob:panhome()
+      ob:gobottom()
+   endif
+
+   IF X==27
+      Berita(15,39,' Tidak ada Prosess penyimpanan data, tekan sembarang tombol ... ','br/n')
+      EXIT
+   ENDIF
+
+   If x ==42
+      ob:panhome()
+      ob:gobottom()
+      while !ob:stabilize() ; end
+      if aTmp[nelemen,ob:colpos]==space(10)
+         berita(row()+1,39,'  Data terakhir masih kosong, Lakukan pengisian Data  ','gr/n')
+         LOOP
+      endif
+
+      if len(aTmp) == 1  .and. aTmp[nElemen,1] == space(10)
+         Berita(15,39,' Prosess tidak dilakukan, tekan sembarang tombol ..','g*/n')
+      else
+         traRtoFi(aTmp)
+         Berita(5,39,' Prosess Selesai, tekan sembarang tombol .... ','g/n')
+      endif
+      EXIT
+   endif
+   KEY(X,OB)
+END
+return(nil)
+
+Static Function Proses2()
+Local mJud,mTpl
+WHILE .T.
+   WHILE !OB:STABILIZE()
+   END
+   nBrs:=ROW() ; nCol:=COL()
+   if ob:hitbottom
+      berita(15,39,' Akhir Data .............  ','gr+/bg')
+   elseif ob:hittop
+      berita(15,39,' Awal Data ........  ','n/g')
+   endif
+   Showind(ob,len(aTmp),nElemen,17,71)
+   setcolor('R/bg')
+   X:=EVAL({||Putar(1,23,'   Pemasukan Barang   ','w/r')})
+   Setpos(nBrs,nCol)
+
+   IF X==13
+      if ob:colpos==2 .or. ob:colpos==3
+         ob:right()
+         Loop
+      endif
+
+      if ob:colpos==5
+         ob:panhome()
+         Loop
+      endif
+      cTmpData:=aTmp[nelemen,ob:colpos]
+      @row(),col() get aTmp[nelemen,ob:colpos] pict apict[ob:colpos]
+      read
+      SELE Sem
+      if ob:colpos==1
+         IF aTmp[nElemen,1]=space(10)
+            SAVE SCREEN
+            mJud:={'KodBrg','Nama Barang'}
+            mTpl:={'KODBRG','stk->Nama'}
+            sBox(9,1,21,60,'R/Bg,W/R')
+            dBedit(10,2,20,59,MTPL,'','',MJUD)
+            RESTORE SCREEN
+            aTmp[nElemen,1]:=sem->KODBRG
+         ENDIF
+         IF !fFound(12,39,aTmp[nElemen,1],'gr+/br')
+            aTmp[nElemen,1]:=space(10)
+            LOOP
+         ENDIF
+         aTmp[nElemen,2]:=stk->Nama
+         aTmp[nElemen,3]:=sem->sisa
+      Endif
+      If ob:Colpos=4
+         IF aTmp[nELemen,3]-aTmp[nElemen,4]<0
+            aTmp[nElemen,4]:=cTmpData
+            Berita(15,39,' Sisa barang Tidak mencukupi ... ','br/n')
+            loop
+         Endif
+         aTmp[nElemen,5]:=aTmp[nElemen,3]-aTmp[nElemen,4]
+      Endif
+      ob:right()
+      ob:refreshall()
+   endif
+
+   if x==43
+      ob:gobottom()
+      ob:panhome()
+      while !ob:stabilize() ; end
+      if aTmp[nelemen,ob:colpos]==space(10)
+         berita(row()+1,39,' Penambahan, Tidak Bisa dilakukan ','gr/n')
+         LOOP
+      endif
+      aAdd(aTmp,{space(10),space(20),0,0,0,'T'})
+      ob:panhome()
+      ob:gobottom()
+   endif
+
+   IF X==27
+      Berita(15,39,' Tidak ada Prosess penyimpanan data, tekan sembarang tombol ... ','br/n')
+      EXIT
+   ENDIF
+
+   If x ==7
+      If(aTmp[nElemen,6]=='F',aTmp[nElemen,6]:='T',aTmp[nElemen,6]:='F')
+      ob:panhome()
+      ob:refreshall()
+   endif
+
+   If x ==42
+      ob:panhome()
+      ob:gobottom()
+      while !ob:stabilize() ; end
+      if aTmp[nelemen,ob:colpos]==space(10)
+         berita(row()+1,39,'  Data terakhir masih kosong, Lakukan pengisian Data  ','gr/n')
+         LOOP
+      endif
+
+      if len(aTmp) == 1  .and. aTmp[nElemen,1] == space(10)
+         Berita(15,39,' Prosess tidak dilakukan, tekan sembarang tombol ..','g*/n')
+      else
+         traRtoFi(aTmp)
+         Berita(5,39,' Prosess Selesai, tekan sembarang tombol .... ','g/n')
+      endif
+      EXIT
+   endif
+   KEY(X,OB)
+END
+return(nil)
+
+
+Static Function _mheader()
+**************************************************************************
+// HEADER FORM
+Setcolor('n+/n')
+@0,0,23,79 BOX REPLI(CHR(219),9)
+sBox(0,21,2,46,'r/bg')
+Keyboard(chr(13))
+Sakti(1,23,'   Pemasukan Barang   ','gr+/bg')
+@4,2 SAY ' NO BPB  : '
+@3,2 SAY ' Faktur  : '
+@5,2 SAY ' Tanggal : '
+
+// Building Work area
+sbox(6,1,17,71,'GR+/B,W/R')
+@22,5 say ' Sisa Stok = '
+Return (nil)
+
+Static Function EditHeader()
+**************************************************************************
+Local mJud,mTpl
+dDate:=date()
+cBukti:=space(8)
+cFaktur:=space(8)
+setcolor('n/w,n/w')
+@3,14 get cFaktur pict '@!'
+Read
+SEle Trin
+dbSeek(cFaktur)
+If !Found()
+   Berita(15,40,' Data Pembelian tidak ditemukan ......','w/r')
+   cFaktur:=Space(8)
+   Return nil
+Endif
+copy stru to sem
+use sem new
+Sele Trin
+while cFaktur == Nobpb .and. !eof()
+   sele sem
+   Dbappend()
+   For i:=1 to Fcount()
+       Fieldput(i,Trin->(Fieldget(i)))
+   next
+   sele Trin
+   skip
+end
+sele sem
+index on kodbrg to sem
+set index to sem
+Set Relation to Kodbrg into Stk
+
+@4,14 get cBukti pict '@!'
+Read
+Sele Trstk
+IF cBukti=space(8)
+   RETURN nil
+Else
+   dbSeek(cBukti)
+   IF fOUND()
+      If cFaktur<>NOBPB
+         Berita(15,40,' Nomor tidak sesuai dengan data yang ada ... ','w/r')
+         cBukti:=Space(8)
+         Return nil
+      Endif
+      dDate:=Tglin
+      While cBukti==Bukti .and. !Eof()
+         sele sem
+         dbseek(Trstk->Kodbrg)
+         aAdd(aTmp,{Kodbrg,stk->Nama,Sisa+Trstk->Qtt,Trstk->Qtt,Sisa,'T'})
+         dbskip(1)
+         Sele Trstk
+         dbskip(1)
+      Enddo
+      nArray:=Len(aTmp)
+      Setcolor('r/bg')
+      cHelp:='Enter->Edit  Esc->Batal Proses Delete->Hapus data "*"->Simpan Data'
+      @24,0 say padc(cHelp,80)
+      Pilih:=1
+   Else
+      aAdd(aTmp,{space(10),space(20),0,0,0,'T'})
+      Setcolor('r/bg')
+      cHelp:='"+"->Tambah data  Enter->Edit  Esc->Batal Proses  '+;
+             '"*"->Simpan Data'
+      @24,0 say padc(cHelp,80)
+      Pilih:=2
+   Endif
+Endif
+@5,14 get dDate
+read
+Return (nil)
+
+// PUT TO FIELD
+Static FUNCTION TRARTOFI(aTmp)
+**************************************************************************
+Local j
+Sele Trstk
+dbseek(cBukti)
+for j:=1 to len(aTmp)
+   If Pilih==2
+      //Tambah Stok Gudang
+      sele stk
+      dbseek(aTmp[j,1])
+      REPLACE qtt WITH qtt+aTmp[j,4]
+      Sele sem
+      dbseek(aTmp[j,1])
+      Replace Sisa with Sisa-aTmp[j,4]
+      // Rekam Data Transaksi
+      Sele Trstk
+      dbappend()
+      fieldput(fieldpos('Tglin'),dDate)          // Tglin
+      fieldput(fieldpos('Bukti'),cBukti)        // Nobpb
+      fieldput(fieldpos('Nobpb'),cFaktur)        // Nobpb
+      fieldput(fieldpos('Qtt'),(aTmp[j,4]))    // Qyds
+      fieldput(fieldpos('Kodbrg'),(aTmp[j,1]))    // Kodbrg
+  Else
+     sele stk
+     If aTmp[j,6]=='T'
+        If aTmp[j,1]==Trstk->Kodbrg
+           dbseek(aTmp[j,1])
+           REPLACE Qtt with qtt+(aTmp[j,4]-trstk->qtt)
+           Sele SEm
+           dbseek(aTmp[j,1])
+           REPLACE Sisa with Sisa-(aTmp[j,4]-trstk->qtt)
+        Else
+           dbseek(Trstk->Kodbrg)
+           REPLACE qtt WITH qtt-Trstk->qtt
+           Sele SEm
+           dbseek(Trstk->Kodbrg)
+           REPLACE Sisa with Sisa+trstk->qtt
+           sele stk
+           dbseek(aTmp[j,1])
+           REPLACE qtt WITH qtt+aTmp[j,4]
+           Sele SEm
+           dbseek(aTmp[j,1])
+           REPLACE Sisa with Sisa-aTmp[j,4]
+        Endif
+
+        // Rekam Data Transaksi
+        Sele Trstk
+        If nArray>=J
+           fieldput(fieldpos('Tglin'),ddate)    // Qpcs
+           fieldput(fieldpos('Bukti'),cBukti)        // Nobpb
+           fieldput(fieldpos('Nobpb'),cFaktur)        // Nobpb
+           fieldput(fieldpos('Qtt'),(aTmp[j,4]))    // Qyds
+           fieldput(fieldpos('Kodbrg'),(aTmp[j,1]))    // Kodbrg
+        else
+           dbappend()
+           fieldput(fieldpos('Tglin'),ddate)    // Qpcs
+           fieldput(fieldpos('Bukti'),cBukti)        // Nobpb
+           fieldput(fieldpos('Nobpb'),cFaktur)        // Nobpb
+           fieldput(fieldpos('Qtt'),(aTmp[j,4]))    // Qyds
+           fieldput(fieldpos('Kodbrg'),(aTmp[j,1]))    // Kodbrg
+        Endif
+     else
+        Sele stk
+        dbseek(Trstk->Kodbrg)
+        REPLACE qtt WITH qtt-Trstk->qtt
+        Sele sem
+        dbseek(Trstk->Kodbrg)
+        REPLACE Sisa WITH Sisa+Trstk->qtt
+        Sele Trstk
+        Delete
+     endif
+  Endif
+  sele trstk
+  dbSkip()
+next
+sele sem
+set order to 0
+dbgotop()
+sele Trin
+dbseek(cFaktur)
+While cFaktur==Nobpb .and. !Eof()
+    Replace Sisa With Sem->Sisa
+Sem->(dbskip(1))
+skip
+Enddo
+dbCommitall()
+Return (nil)
+
